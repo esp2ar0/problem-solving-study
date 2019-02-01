@@ -22,11 +22,4 @@ public class 위장 {
         answer--;
         return answer;
     }
-
-    public static void main(String[] args) {
-        위장 d = new 위장();
-        String[][] clothes ={{"yellow_hat", "headgear"}, {"blue_sunglasses", "eyewear"}, {"green_turban", "headgear"}};
-
-        System.out.println(d.solution(clothes));
-    }
 }
