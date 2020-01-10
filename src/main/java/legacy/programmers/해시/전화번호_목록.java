@@ -1,4 +1,4 @@
-package programmers.해시;
+package legacy.programmers.해시;
 
 public class 전화번호_목록 {
     public boolean solution(String[] phone_book) {

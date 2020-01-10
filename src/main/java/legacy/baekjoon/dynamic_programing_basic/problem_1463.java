@@ -1,4 +1,4 @@
-package baekjoon.dynamic_programing_basic;
+package legacy.baekjoon.dynamic_programing_basic;
 
 import java.util.Scanner;
 

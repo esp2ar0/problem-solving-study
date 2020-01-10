@@ -1,4 +1,4 @@
-package programmers.해시;
+package legacy.programmers.해시;
 
 import java.util.Arrays;
 
