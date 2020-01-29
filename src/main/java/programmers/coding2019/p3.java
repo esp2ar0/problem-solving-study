@@ -15,35 +15,8 @@ import java.util.*;
  */
 
 public class p3 {
-
-    public int solution(int[][] land, int height) {
-        int[][] division = new int[land.length][land.length];
-
-        //같은 구간 구하기
-        int level = 0;
-        for (int i = 0; i < land.length; i++) {
-            for (int j = 0; j < land.length; j++) {
-                if (division[i][j] == 0) {
-                    search(land, division, ++level, height, new Point(i, j));
-                }
-            }
-        }
-
-        //그래프
-        int[][] a = new int[level + 1][level + 1];
-        for (int[] ints : a) {
-            Arrays.fill(ints, Integer.MAX_VALUE);
-        }
-
-        //그래프 값 세팅
-        for (int i = 0; i < land.length; i++) {
-            for (int j = 0; j < land.length; j++) {
-                setGraph(land, division, a, new Point(i, j));
-            }
-        }
-
-        return getWeightByKruskal(a);
-    }
+    private static final int[] dx = {-1, 1, 0, 0};
+    private static final int[] dy = {0, 0, -1, 1};
 
     private static class Point {
         int x;
@@ -55,150 +28,138 @@ public class p3 {
         }
     }
 
-    private void search(int[][] land, int[][] division, int level, int height, Point point) {
-        int length = land.length;
-        boolean[][] visited = new boolean[length][length];
+    private static class Edge {
+        int target;
+        int weight;
 
+        public Edge(int target, int weight) {
+            this.target = target;
+            this.weight = weight;
+        }
+    }
+
+    public int solution(int[][] land, int height) {
+        int[][] division = new int[land.length][land.length];
+
+        //같은 구간 구하기
+        int level = 0;
+        boolean[][] visited = new boolean[land.length][land.length];
+        for (int i = 0; i < land.length; i++) {
+            for (int j = 0; j < land.length; j++) {
+                if (!visited[i][j]) {
+                    search(land, division, ++level, height, new Point(i, j), visited);
+                }
+            }
+        }
+
+        if(level == 1) {
+            return 0;
+        }
+
+        //그래프
+        int[][] a = new int[level][level];
+        for (int[] ints : a) {
+            Arrays.fill(ints, Integer.MAX_VALUE);
+        }
+
+        //그래프 값 세팅
+        for (int i = 0; i < land.length; i++) {
+            for (int j = 0; j < land.length; j++) {
+                setGraph(land, division, a, new Point(i, j));
+            }
+        }
+        return mstByPrim(a);
+    }
+
+    private boolean isValid(int x, int y, int length) {
+        return x >= 0 && y >= 0 && x < length && y < length;
+    }
+
+    private void search(int[][] land, int[][] division, int level, int height, Point point, boolean[][] visited) {
+        int length = land.length;
         Queue<Point> queue = new LinkedList<>();
         queue.offer(point);
         visited[point.x][point.y] = true;
 
         while (!queue.isEmpty()) {
             point = queue.poll();
-            int element = land[point.x][point.y];
+            int currentLand = land[point.x][point.y];
             division[point.x][point.y] = level;
 
-            if (point.x + 1 < length
-                    && division[point.x + 1][point.y] == 0
-                    && !visited[point.x + 1][point.y]
-                    && Math.abs(land[point.x + 1][point.y] - element) <= height) {
-                queue.offer(new Point(point.x + 1, point.y));
-                visited[point.x + 1][point.y] = true;
-            }
+            for (int i = 0; i < 4; i++) {
+                int x = point.x + dx[i];
+                int y = point.y + dy[i];
 
-            if (point.x - 1 >= 0
-                    && division[point.x - 1][point.y] == 0
-                    && !visited[point.x - 1][point.y]
-                    && Math.abs(land[point.x - 1][point.y] - element) <= height) {
-                queue.offer(new Point(point.x - 1, point.y));
-                visited[point.x - 1][point.y] = true;
-            }
-
-            if (point.y + 1 < length
-                    && division[point.x][point.y + 1] == 0
-                    && !visited[point.x][point.y + 1]
-                    && Math.abs(land[point.x][point.y + 1] - element) <= height) {
-                queue.offer(new Point(point.x, point.y + 1));
-                visited[point.x][point.y + 1] = true;
-            }
-
-            if (point.y - 1 >= 0
-                    && division[point.x][point.y - 1] == 0
-                    && !visited[point.x][point.y - 1]
-                    && Math.abs(land[point.x][point.y - 1] - element) <= height) {
-                queue.offer(new Point(point.x, point.y - 1));
-                visited[point.x][point.y - 1] = true;
-            }
-        }
-
-    }
-
-    private void setGraph(int[][] land, int[][] division, int[][] a, Point point) {
-        //오른쪽
-        if (point.x + 1 < land.length && division[point.x][point.y] != division[point.x + 1][point.y]) {
-            int x = division[point.x][point.y];
-            int y = division[point.x + 1][point.y];
-            int value = Math.abs(land[point.x][point.y] - land[point.x + 1][point.y]);
-
-            if (a[x][y] > value) {
-                a[x][y] = value;
-                a[y][x] = value;
-            }
-        }
-
-        //아래
-        if (point.y + 1 < land.length && division[point.x][point.y] != division[point.x][point.y + 1]) {
-            int x = division[point.x][point.y];
-            int y = division[point.x][point.y + 1];
-            int value = Math.abs(land[point.x][point.y] - land[point.x][point.y + 1]);
-
-            if (a[x][y] > value) {
-                a[x][y] = value;
-                a[y][x] = value;
-            }
-        }
-    }
-
-    class Edge {
-        int u;
-        int v;
-        int weight;
-
-        public Edge(int u, int v, int weight) {
-            this.u = u;
-            this.v = v;
-            this.weight = weight;
-        }
-    }
-
-    private int getWeightByKruskal(int[][] a) {
-        PriorityQueue<Edge> priorityQueue = new PriorityQueue<>(Comparator.comparingInt(o -> o.weight));
-
-        for (int i = 1; i < a.length; i++) {
-            for (int j = 1; j < a.length; j++) {
-                if(a[i][j] < 10000) {
-                    priorityQueue.add(new Edge(i - 1, j - 1, a[i][j]));
+                if (isValid(x, y, length)
+                        && !visited[x][y]
+                        && Math.abs(land[x][y] - currentLand) <= height) {
+                    queue.offer(new Point(x, y));
+                    visited[x][y] = true;
                 }
             }
         }
-        int v = a.length - 1;
-        int sum = 0;
+    }
 
-        int[] parent = new int[v];
-        for (int i = 0; i < v; i++) {
-            parent[i] = i;
+    private void setGraph(int[][] land, int[][] division, int[][] a, Point point) {
+        int currentDivision = division[point.x][point.y];
+        int currentLand = land[point.x][point.y];
+
+        for (int i = 0; i < 4; i++) {
+            int x = point.x + dx[i];
+            int y = point.y + dy[i];
+
+            if (isValid(x, y, land.length) && currentDivision != division[x][y]) {
+                int value = Math.abs(currentLand - land[x][y]);
+                x = division[x][y] - 1;
+                y = currentDivision - 1;
+
+                if (a[x][y] > value) {
+                    a[x][y] = value;
+                    a[y][x] = value;
+                }
+            }
         }
+    }
 
-        while(!priorityQueue.isEmpty()) {
-            Edge element = priorityQueue.poll();
+    private static int mstByPrim(int[][] a) {
+        PriorityQueue<Edge> priorityQueue = new PriorityQueue<>(Comparator.comparingInt(o -> o.weight));
+        Set<Integer> vertexSet = new HashSet<>();
+        int vertex = 0;
+        vertexSet.add(vertex);
+        int weight = 0;
+        int v = a.length;
 
-            int p = find(element.u, parent);
-            int q = find(element.v, parent);
-            if(p == q) {
-                continue;
+        while (vertexSet.size() != v) {
+            for (int i = 0; i < a.length; i++) {
+                if (a[vertex][i] < 10000) {
+                    priorityQueue.add(new Edge(i, a[vertex][i]));
+                }
             }
 
-            union(p, q, parent);
-            sum += element.weight;
+            while (!priorityQueue.isEmpty()) {
+                Edge edge = priorityQueue.poll();
+                if (!vertexSet.contains(edge.target)) {
+                    vertex = edge.target;
+                    weight += edge.weight;
+                    vertexSet.add(vertex);
+                    break;
+                }
+            }
         }
-        return sum;
+        return weight;
     }
-
-    private int find(int vertex, int[] parent) {
-        int root = parent[vertex];
-        if(root == vertex) {
-            return root;
-        }
-        root = find(root, parent);
-        parent[vertex] = root;
-        return root;
-    }
-
-    private void union(int p, int q, int[] parent) {
-        int x = find(p, parent);
-        int y = find(q, parent);
-        parent[x] = y;
-    }
-
 
     public static void main(String[] args) {
 //        int answer = new p3().solution(new int[][]{
 //                {1, 4, 8, 10}, {5, 5, 5, 5}, {10, 10, 10, 10}, {10, 10, 10, 20}
 //        }, 3);
 
+//        int answer = new p3().solution(new int[][]{
+//                {10, 11, 10, 11}, {2, 21, 20, 10}, {1, 20, 21, 11}, {2, 1, 2, 1}
+//        }, 1);
         int answer = new p3().solution(new int[][]{
-                {10, 11, 10, 11}, {2, 21, 20, 10}, {1, 20, 21, 11}, {2, 1, 2, 1}
-        }, 1);
+                {1, 3, 5, 7}, {15, 13, 11, 9}, {17, 19, 21, 23}, {31, 29, 27, 25}
+        }, 2);
 
         System.out.println(answer);
     }
