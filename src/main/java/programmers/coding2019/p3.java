@@ -7,10 +7,11 @@ import java.util.*;
  * 3번문제 지형이동
  *
  * - 겁나 오래걸린 문제
- * - 테케 몇개 통과 못함
  *
  * 1. 같은 구역으로 나눈다
  * 2. 그래프를 그린다
+ *      -> 그래프를 인접행렬로 표현시 메모리 초과
+ *      -> 인접리스트로 표현, 모든 간선 추가 후 가장 저렴한 간선만 사용
  * 3. 최소 신장 트리로 최소 가중치를 구한다.
  */
 
@@ -18,31 +19,10 @@ public class p3 {
     private static final int[] dx = {-1, 1, 0, 0};
     private static final int[] dy = {0, 0, -1, 1};
 
-    private static class Point {
-        int x;
-        int y;
-
-        Point(int x, int y) {
-            this.x = x;
-            this.y = y;
-        }
-    }
-
-    private static class Edge {
-        int target;
-        int weight;
-
-        public Edge(int target, int weight) {
-            this.target = target;
-            this.weight = weight;
-        }
-    }
-
     public int solution(int[][] land, int height) {
-        int[][] division = new int[land.length][land.length];
-
-        //같은 구간 구하기
+        // 같은 구간 구하기
         int level = 0;
+        int[][] division = new int[land.length][land.length];
         boolean[][] visited = new boolean[land.length][land.length];
         for (int i = 0; i < land.length; i++) {
             for (int j = 0; j < land.length; j++) {
@@ -52,21 +32,20 @@ public class p3 {
             }
         }
 
-        if(level == 1) {
-            return 0;
+        // 그래프 생성
+        List<List<Edge>> a = new ArrayList<>(level);
+        for (int i = 0; i < level; i++) {
+            a.add(new ArrayList<>());
         }
-
-        //그래프
-        int[][] a = new int[level][level];
-        for (int[] ints : a) {
-            Arrays.fill(ints, Integer.MAX_VALUE);
-        }
-
-        //그래프 값 세팅
+        // 그래프 세팅
         for (int i = 0; i < land.length; i++) {
             for (int j = 0; j < land.length; j++) {
                 setGraph(land, division, a, new Point(i, j));
             }
+        }
+        // 한 정점에 대해 1)target 2)weight 오름차순 정렬
+        for (int i = 0; i < level; i++) {
+            Collections.sort(a.get(i));
         }
         return mstByPrim(a);
     }
@@ -76,7 +55,6 @@ public class p3 {
     }
 
     private void search(int[][] land, int[][] division, int level, int height, Point point, boolean[][] visited) {
-        int length = land.length;
         Queue<Point> queue = new LinkedList<>();
         queue.offer(point);
         visited[point.x][point.y] = true;
@@ -90,7 +68,7 @@ public class p3 {
                 int x = point.x + dx[i];
                 int y = point.y + dy[i];
 
-                if (isValid(x, y, length)
+                if (isValid(x, y, land.length)
                         && !visited[x][y]
                         && Math.abs(land[x][y] - currentLand) <= height) {
                     queue.offer(new Point(x, y));
@@ -100,7 +78,7 @@ public class p3 {
         }
     }
 
-    private void setGraph(int[][] land, int[][] division, int[][] a, Point point) {
+    private void setGraph(int[][] land, int[][] division, List<List<Edge>> a, Point point) {
         int currentDivision = division[point.x][point.y];
         int currentLand = land[point.x][point.y];
 
@@ -113,31 +91,34 @@ public class p3 {
                 x = division[x][y] - 1;
                 y = currentDivision - 1;
 
-                if (a[x][y] > value) {
-                    a[x][y] = value;
-                    a[y][x] = value;
-                }
+                a.get(x).add(new Edge(y, value));
+                a.get(y).add(new Edge(x, value));
             }
         }
     }
 
-    private static int mstByPrim(int[][] a) {
+    private static int mstByPrim(List<List<Edge>> a) {
         PriorityQueue<Edge> priorityQueue = new PriorityQueue<>(Comparator.comparingInt(o -> o.weight));
         Set<Integer> vertexSet = new HashSet<>();
         int vertex = 0;
         vertexSet.add(vertex);
         int weight = 0;
-        int v = a.length;
+        int v = a.size();
 
         while (vertexSet.size() != v) {
-            for (int i = 0; i < a.length; i++) {
-                if (a[vertex][i] < 10000) {
-                    priorityQueue.add(new Edge(i, a[vertex][i]));
+            List<Edge> edgeList = a.get(vertex);
+            Edge edge = edgeList.get(0);
+            priorityQueue.add(edge);
+            for (int i = 1; i < edgeList.size(); i++) {
+                if(edgeList.get(i).target == edge.target) {
+                    continue;
                 }
+                edge = edgeList.get(i);
+                priorityQueue.add(edge);
             }
 
             while (!priorityQueue.isEmpty()) {
-                Edge edge = priorityQueue.poll();
+                edge = priorityQueue.poll();
                 if (!vertexSet.contains(edge.target)) {
                     vertex = edge.target;
                     weight += edge.weight;
@@ -147,6 +128,34 @@ public class p3 {
             }
         }
         return weight;
+    }
+
+    private static class Point {
+        int x;
+        int y;
+
+        Point(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+    private static class Edge implements Comparable<Edge>{
+        int target;
+        int weight;
+
+        Edge(int target, int weight) {
+            this.target = target;
+            this.weight = weight;
+        }
+
+        @Override
+        public int compareTo(Edge o) {
+            if(this.target == o.target) {
+                return Integer.compare(this.weight, o.weight);
+            }
+            return Integer.compare(this.target, o.target);
+        }
     }
 
     public static void main(String[] args) {
